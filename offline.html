@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Mapeamento do Algodão - Offline</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+    }
+
+    .offline-container {
+      background: white;
+      border-radius: 20px;
+      padding: 3rem;
+      text-align: center;
+      max-width: 500px;
+      margin: 2rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+
+    .icon {
+      width: 80px;
+      height: 80px;
+      background: #f3f4f6;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 2rem;
+      position: relative;
+    }
+
+    .icon::before {
+      content: '📡';
+      font-size: 2.5rem;
+      opacity: 0.3;
+    }
+
+    .icon::after {
+      content: '❌';
+      font-size: 1.5rem;
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      background: white;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    h1 {
+      color: #059669;
+      margin-bottom: 1rem;
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    p {
+      color: #6b7280;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+
+    .retry-btn {
+      background: #059669;
+      color: white;
+      padding: 0.75rem 2rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-right: 1rem;
+    }
+
+    .retry-btn:hover {
+      background: #047857;
+      transform: translateY(-2px);
+    }
+
+    .info-btn {
+      background: transparent;
+      color: #059669;
+      padding: 0.75rem 2rem;
+      border: 2px solid #059669;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .info-btn:hover {
+      background: #059669;
+      color: white;
+    }
+
+    .features {
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .feature {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1rem;
+      text-align: left;
+      color: #6b7280;
+    }
+
+    .feature-icon {
+      width: 40px;
+      height: 40px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 1rem;
+    }
+
+    .connection-status {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+
+    .online {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .offline {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    @media (max-width: 640px) {
+      .offline-container {
+        margin: 1rem;
+        padding: 2rem;
+      }
+
+      .retry-btn, .info-btn {
+        width: 100%;
+        margin: 0.5rem 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-container">
+    <div class="icon"></div>
+    
+    <h1>Você está offline</h1>
+    
+    <p>
+      Não foi possível conectar à internet. O Sistema de Mapeamento do Algodão 
+      pode funcionar offline com funcionalidades limitadas.
+    </p>
+
+    <button class="retry-btn" onclick="retryConnection()">
+      🔄 Tentar Novamente
+    </button>
+    
+    <button class="info-btn" onclick="showOfflineFeatures()">
+      📱 Modo Offline
+    </button>
+
+    <div class="features" id="offline-features" style="display: none;">
+      <div class="feature">
+        <div class="feature-icon">🌱</div>
+        <div>
+          <strong>Mapeamento Local</strong><br>
+          Continue mapeando estruturas reprodutivas
+        </div>
+      </div>
+      
+      <div class="feature">
+        <div class="feature-icon">💾</div>
+        <div>
+          <strong>Dados Salvos</strong><br>
+          Seus dados ficam seguros no dispositivo
+        </div>
+      </div>
+      
+      <div class="feature">
+        <div class="feature-icon">📊</div>
+        <div>
+          <strong>Análises Offline</strong><br>
+          Calcule estatísticas sem internet
+        </div>
+      </div>
+    </div>
+
+    <div class="connection-status offline" id="status">
+      🔴 Status: Offline
+    </div>
+  </div>
+
+  <script>
+    // Monitora status de conexão
+    function updateConnectionStatus() {
+      const status = document.getElementById('status');
+      if (navigator.onLine) {
+        status.className = 'connection-status online';
+        status.innerHTML = '🟢 Status: Online - Reconectado!';
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        status.className = 'connection-status offline';
+        status.innerHTML = '🔴 Status: Offline';
+      }
+    }
+
+    // Event listeners para mudanças de conectividade
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+
+    function retryConnection() {
+      if (navigator.onLine) {
+        window.location.reload();
+      } else {
+        // Simula tentativa de reconexão
+        const btn = document.querySelector('.retry-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳ Verificando...';
+        btn.disabled = true;
+        
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          
+          if (navigator.onLine) {
+            window.location.reload();
+          } else {
+            alert('Ainda sem conexão. Verifique sua rede e tente novamente.');
+          }
+        }, 2000);
+      }
+    }
+
+    function showOfflineFeatures() {
+      const features = document.getElementById('offline-features');
+      features.style.display = features.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // Registra service worker se disponível
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => {
+          console.log('SW registered: ', registration);
+        })
+        .catch(registrationError => {
+          console.log('SW registration failed: ', registrationError);
+        });
+    }
+
+    // Inicializa status
+    updateConnectionStatus();
+  </script>
+</body>
+</html>
