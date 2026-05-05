@@ -20,6 +20,9 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
+  <!-- jsPDF Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNhh/OKDDIM8WZNm9w8YxW1WKdtE+6B5qs7LDdNvXh4WuH1n5Ds0c8GBg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  
   <style>
     /* PWA Styles */
     @media (display-mode: standalone) {
@@ -449,61 +452,173 @@
     }
 
     // Export to PDF
-    async function exportToPDF() {
+    function exportToPDF() {
       if (!analysisResults) {
         alert('Execute a análise primeiro para gerar o relatório PDF.');
         return;
       }
       
+      // Check if jsPDF is loaded
+      if (typeof window.jspdf === 'undefined') {
+        alert('⚠️ Biblioteca PDF não carregada. Recarregue a página e tente novamente.');
+        return;
+      }
+      
       try {
-        // Import jsPDF dynamically
-        const { jsPDF } = await import('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+        // Show loading
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '⏳ Gerando PDF...';
+        button.disabled = true;
         
+        // Create PDF
+        const { jsPDF } = window.jspdf;
         const pdf = new jsPDF();
         let yPos = 20;
         
-        // Header
+        // Helper function for line breaks
+        const addY = (increment = 8) => {
+          yPos += increment;
+          if (yPos > 270) {
+            pdf.addPage();
+            yPos = 20;
+          }
+        };
+        
+        // Header with green background
         pdf.setFillColor(5, 150, 105);
         pdf.rect(0, 0, 210, 25, 'F');
         pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(16);
-        pdf.text('RELATÓRIO DE MAPEAMENTO DO ALGODÃO', 20, 16);
-        
-        // Content
-        yPos = 40;
-        pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(14);
-        pdf.text('Dados da Análise', 20, yPos);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('RELATÓRIO DE MAPEAMENTO DO ALGODÃO', 105, 15, { align: 'center' });
         
-        yPos += 10;
-        pdf.setFontSize(10);
-        pdf.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, yPos);
-        yPos += 6;
-        pdf.text(`DAE: ${document.getElementById('dae-input').value} dias`, 20, yPos);
-        yPos += 6;
-        pdf.text(`Total de Posições Mapeadas: ${analysisResults.totalPositions}`, 20, yPos);
-        yPos += 6;
-        pdf.text(`Taxa de Retenção: ${analysisResults.retentionRate}%`, 20, yPos);
-        yPos += 6;
-        pdf.text(`Taxa de Aborto: ${analysisResults.percentages.A}%`, 20, yPos);
+        // Reset colors and position
+        yPos = 35;
+        pdf.setTextColor(0, 0, 0);
         
-        yPos += 15;
+        // Experiment data section
         pdf.setFontSize(12);
-        pdf.text('Contagem por Estrutura:', 20, yPos);
-        yPos += 8;
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('DADOS DO EXPERIMENTO', 20, yPos);
+        addY(10);
         
-        Object.entries(analysisResults.counts).forEach(([key, count]) => {
-          pdf.setFontSize(10);
-          pdf.text(`${getStructureName(key)}: ${count} (${analysisResults.percentages[key]}%)`, 25, yPos);
-          yPos += 6;
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`Data da Avaliação: ${new Date().toLocaleDateString('pt-BR')}`, 20, yPos);
+        addY(6);
+        pdf.text(`DAE (Dias Após Emergência): ${document.getElementById('dae-input').value} dias`, 20, yPos);
+        addY(6);
+        pdf.text(`Total de Posições Mapeadas: ${analysisResults.totalPositions}`, 20, yPos);
+        addY(6);
+        pdf.text(`Sistema: Metodologia IMAmt - Mapeamento Digital`, 20, yPos);
+        addY(15);
+        
+        // Analysis results section
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('RESUMO QUANTITATIVO', 20, yPos);
+        addY(10);
+        
+        // Structure counts
+        const structures = {
+          'B': 'Botão Floral',
+          'F': 'Flor', 
+          'M': 'Maçã',
+          'C': 'Capulho',
+          'A': 'Aborto'
+        };
+        
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        
+        Object.entries(structures).forEach(([key, name]) => {
+          const count = analysisResults.counts[key] || 0;
+          const percentage = analysisResults.percentages[key] || '0.0';
+          pdf.text(`${name}: ${count} unidades (${percentage}%)`, 25, yPos);
+          addY(6);
         });
         
-        // Save
-        pdf.save(`relatorio-algodao-${new Date().toISOString().split('T')[0]}.pdf`);
+        addY(8);
+        
+        // Key metrics with boxes
+        pdf.setFillColor(240, 248, 255); // Light blue background
+        pdf.rect(15, yPos - 5, 180, 25, 'F');
+        
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('ÍNDICES PRINCIPAIS:', 20, yPos);
+        addY(8);
+        
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`• Taxa de Retenção: ${analysisResults.retentionRate}%`, 25, yPos);
+        addY(6);
+        pdf.text(`• Taxa de Aborto: ${analysisResults.percentages.A}%`, 25, yPos);
+        addY(6);
+        pdf.text(`• Eficiência Produtiva: ${(100 - parseFloat(analysisResults.percentages.A)).toFixed(1)}%`, 25, yPos);
+        
+        addY(15);
+        
+        // Methodology section
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('METODOLOGIA', 20, yPos);
+        addY(8);
+        
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'normal');
+        const methodology = 'Baseado na metodologia científica do Instituto Mato-grossense do Algodão (IMAmt). Mapeamento de estruturas reprodutivas seguindo notação ramos frutíferos × posições, permitindo análise espacial detalhada do desenvolvimento reprodutivo.';
+        
+        const methodologyLines = pdf.splitTextToSize(methodology, 170);
+        methodologyLines.forEach(line => {
+          pdf.text(line, 20, yPos);
+          addY(5);
+        });
+        
+        addY(10);
+        
+        // Structures legend
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('LEGENDA DAS ESTRUTURAS:', 20, yPos);
+        addY(6);
+        
+        pdf.setFont('helvetica', 'normal');
+        Object.entries(structures).forEach(([key, name]) => {
+          pdf.text(`${key} = ${name}`, 25, yPos);
+          addY(5);
+        });
+        
+        // Footer
+        const footerY = 285;
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text('Sistema de Mapeamento do Algodão - PWA | Gerado em ' + new Date().toLocaleString('pt-BR'), 20, footerY);
+        
+        // Generate filename
+        const date = new Date().toISOString().split('T')[0];
+        const dae = document.getElementById('dae-input').value;
+        const fileName = `Relatorio_Mapeamento_Algodao_DAE${dae}_${date}.pdf`;
+        
+        // Save PDF
+        pdf.save(fileName);
+        
+        // Success feedback
+        setTimeout(() => {
+          alert('✅ Relatório PDF gerado com sucesso!');
+          button.innerHTML = originalText;
+          button.disabled = false;
+        }, 500);
         
       } catch (error) {
         console.error('Erro ao gerar PDF:', error);
-        alert('Erro ao gerar PDF. Verifique sua conexão com a internet.');
+        alert('❌ Erro ao gerar PDF: ' + error.message);
+        
+        // Reset button
+        const button = event.target;
+        button.innerHTML = '<span>📄</span><span>PDF</span>';
+        button.disabled = false;
       }
     }
 
@@ -642,9 +757,22 @@
 
     // Initialize app
     document.addEventListener('DOMContentLoaded', () => {
+      console.log('🌱 Iniciando Sistema de Mapeamento do Algodão...');
+      
+      // Check if jsPDF loaded
+      setTimeout(() => {
+        if (typeof window.jspdf !== 'undefined') {
+          console.log('✅ Biblioteca jsPDF carregada com sucesso');
+        } else {
+          console.warn('⚠️ jsPDF não carregou - função PDF pode não funcionar');
+        }
+      }, 2000);
+      
       initializeGrid();
       loadFromLocalStorage();
       updateOnlineStatus();
+      
+      console.log('✅ Sistema inicializado com sucesso');
     });
   </script>
 </body>
