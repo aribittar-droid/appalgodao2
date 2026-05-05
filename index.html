@@ -9,53 +9,27 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Algodão Map">
   
-  <!-- Favicons -->
-  <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23059669' rx='6'/><rect x='6' y='6' width='20' height='20' fill='white' rx='3'/></svg>">
-  
-  <!-- Apple Touch Icons -->
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' fill='%23059669' rx='40'/><rect x='30' y='30' width='120' height='120' fill='white' rx='15'/><circle cx='90' cy='90' r='20' fill='%23059669'/></svg>">
-  
   <!-- Manifest -->
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="./manifest.json">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23059669' rx='6'/><rect x='6' y='6' width='20' height='20' fill='white' rx='3'/></svg>">
   
   <title>Sistema de Mapeamento do Algodão</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- React & ReactDOM -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  
-  <!-- Babel for JSX -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  
-  <!-- Lucide React Icons -->
-  <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.js"></script>
-
   <style>
-    /* Custom styles for PWA */
+    /* PWA Styles */
     @media (display-mode: standalone) {
       body {
-        /* Remove any browser chrome styling */
         -webkit-touch-callout: none;
         -webkit-user-select: none;
-        -khtml-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
         user-select: none;
-      }
-      
-      /* Safe area for iPhone notch */
-      .safe-area-inset {
-        padding-top: env(safe-area-inset-top);
-        padding-left: env(safe-area-inset-left);
-        padding-right: env(safe-area-inset-right);
-        padding-bottom: env(safe-area-inset-bottom);
       }
     }
     
-    /* Loading animation */
     .loading-spinner {
       border: 3px solid #f3f3f3;
       border-top: 3px solid #059669;
@@ -70,113 +44,550 @@
       100% { transform: rotate(360deg); }
     }
     
-    /* Prevent zoom on input focus (iOS) */
-    input, select, textarea {
-      font-size: 16px !important;
+    .grid-cell {
+      width: 50px;
+      height: 50px;
+      border: 2px solid #e5e7eb;
+      cursor: pointer;
+      transition: all 0.2s;
     }
     
-    /* Hide default focus outline and add custom */
-    button:focus, input:focus {
-      outline: 2px solid #10b981;
-      outline-offset: 2px;
+    .grid-cell:hover {
+      border-color: #3b82f6;
+      background-color: #dbeafe;
     }
     
-    /* Touch-friendly minimum sizes */
-    button, .touch-target {
-      min-height: 44px;
-      min-width: 44px;
+    .structure-b { background-color: #10b981; color: white; }
+    .structure-f { background-color: #f59e0b; color: white; }
+    .structure-m { background-color: #f97316; color: white; }
+    .structure-c { background-color: #3b82f6; color: white; }
+    .structure-a { background-color: #ef4444; color: white; }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .grid-cell {
+        width: 40px;
+        height: 40px;
+        font-size: 12px;
+      }
+    }
+    
+    .modal {
+      backdrop-filter: blur(4px);
     }
   </style>
 </head>
-<body>
-  <!-- PWA Install Banner -->
-  <div id="install-banner" class="hidden bg-green-600 text-white p-4 text-center">
-    <div class="flex items-center justify-between max-w-md mx-auto">
-      <div class="flex items-center">
-        <svg class="h-6 w-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
-        </svg>
-        <span class="text-sm">Instalar app</span>
-      </div>
+<body class="bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
+  
+  <!-- Install Banner -->
+  <div id="install-banner" class="hidden bg-green-600 text-white p-3 text-center">
+    <div class="flex items-center justify-between max-w-md mx-auto text-sm">
+      <span>📱 Instalar como app</span>
       <div class="space-x-2">
-        <button id="install-button" class="bg-white text-green-600 px-3 py-1 rounded text-sm font-medium">
+        <button id="install-button" class="bg-white text-green-600 px-3 py-1 rounded font-medium">
           Instalar
         </button>
-        <button id="dismiss-banner" class="text-green-200 hover:text-white">
-          ✕
-        </button>
+        <button id="dismiss-banner" class="text-green-200 hover:text-white">✕</button>
       </div>
     </div>
   </div>
 
-  <!-- Loading Screen -->
-  <div id="loading" class="fixed inset-0 bg-green-600 flex items-center justify-center z-50">
-    <div class="text-center text-white">
-      <div class="loading-spinner mx-auto mb-4"></div>
-      <h2 class="text-2xl font-bold mb-2">Algodão Map</h2>
-      <p class="text-green-200">Carregando sistema...</p>
-    </div>
-  </div>
-
-  <!-- App Container -->
-  <div id="app" class="hidden"></div>
-
-  <!-- iOS Installation Instructions -->
-  <div id="ios-install-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-xl max-w-sm w-full p-6">
-      <div class="text-center">
-        <div class="text-6xl mb-4">📱</div>
-        <h3 class="text-xl font-bold mb-4">Instalar no iPhone/iPad</h3>
-        <div class="text-left space-y-3 text-gray-700">
-          <div class="flex items-start">
-            <span class="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-3 mt-0.5">1</span>
-            <p>Toque no botão <strong>Compartilhar</strong> no Safari 
-               <svg class="inline w-4 h-4 mx-1" fill="currentColor" viewBox="0 0 20 20">
-                 <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"/>
-               </svg>
-            </p>
+  <!-- Header -->
+  <header class="bg-gradient-to-r from-green-700 via-emerald-600 to-teal-600 text-white shadow-xl">
+    <div class="max-w-6xl mx-auto px-4 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+            </svg>
           </div>
-          <div class="flex items-start">
-            <span class="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-3 mt-0.5">2</span>
-            <p>Role para baixo e toque em <strong>"Adicionar à Tela de Início"</strong></p>
-          </div>
-          <div class="flex items-start">
-            <span class="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-3 mt-0.5">3</span>
-            <p>Toque em <strong>"Adicionar"</strong> para confirmar</p>
+          <div>
+            <h1 class="text-2xl font-bold">Sistema de Mapeamento do Algodão</h1>
+            <p class="text-green-100 text-sm">Metodologia IMAmt - Estruturas Reprodutivas</p>
           </div>
         </div>
-        <button id="close-ios-modal" class="w-full bg-green-600 text-white py-3 rounded-lg mt-6 font-semibold">
-          Entendi
+        <div class="flex items-center space-x-2">
+          <div id="online-status" class="px-3 py-1 rounded-lg backdrop-blur-sm bg-green-500/20 flex items-center space-x-1 text-sm">
+            <span id="status-icon">📶</span>
+            <span id="status-text">Online</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Instructions -->
+  <div class="max-w-6xl mx-auto px-4 py-4">
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+      <div class="flex">
+        <svg class="h-5 w-5 text-blue-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+        </svg>
+        <div>
+          <h3 class="text-lg font-medium text-blue-800">Como Mapear</h3>
+          <div class="mt-2 text-blue-700">
+            <p class="mb-2">1. <strong>Clique</strong> em uma posição na grade</p>
+            <p class="mb-2">2. <strong>Selecione</strong> o tipo de estrutura</p>
+            <p class="mb-2">3. <strong>Analise</strong> os resultados automaticamente</p>
+            
+            <div class="grid grid-cols-5 gap-2 mt-3">
+              <div class="flex items-center space-x-1">
+                <div class="w-4 h-4 bg-green-500 rounded flex items-center justify-center text-white text-xs font-bold">B</div>
+                <span class="text-xs">Botão</span>
+              </div>
+              <div class="flex items-center space-x-1">
+                <div class="w-4 h-4 bg-yellow-500 rounded flex items-center justify-center text-white text-xs font-bold">F</div>
+                <span class="text-xs">Flor</span>
+              </div>
+              <div class="flex items-center space-x-1">
+                <div class="w-4 h-4 bg-orange-500 rounded flex items-center justify-center text-white text-xs font-bold">M</div>
+                <span class="text-xs">Maçã</span>
+              </div>
+              <div class="flex items-center space-x-1">
+                <div class="w-4 h-4 bg-blue-500 rounded flex items-center justify-center text-white text-xs font-bold">C</div>
+                <span class="text-xs">Capulho</span>
+              </div>
+              <div class="flex items-center space-x-1">
+                <div class="w-4 h-4 bg-red-500 rounded flex items-center justify-center text-white text-xs font-bold">A</div>
+                <span class="text-xs">Aborto</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="max-w-6xl mx-auto px-4 pb-8">
+    
+    <!-- Controls -->
+    <div class="bg-white rounded-xl shadow-lg p-4 mb-6 border border-green-100">
+      <div class="flex flex-wrap gap-3 items-center justify-between">
+        <div class="flex flex-wrap gap-2">
+          <button onclick="calculateAnalysis()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
+            <span>📊</span>
+            <span>Calcular</span>
+          </button>
+          <button onclick="exportToPDF()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
+            <span>📄</span>
+            <span>PDF</span>
+          </button>
+          <button onclick="exportToJSON()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
+            <span>💾</span>
+            <span>Exportar</span>
+          </button>
+          <button onclick="clearGrid()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
+            <span>🗑️</span>
+            <span>Limpar</span>
+          </button>
+        </div>
+        
+        <div class="text-sm text-gray-600">
+          <span>DAE: </span>
+          <input id="dae-input" type="number" value="95" class="w-16 px-2 py-1 border rounded" min="1" max="200">
+          <span> dias</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grid Container -->
+    <div class="bg-white rounded-xl shadow-lg p-4 mb-6 border border-green-100">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+        <span class="mr-2">🌱</span>
+        Grade de Mapeamento - Ramos × Posições
+      </h2>
+      
+      <div class="overflow-x-auto">
+        <div class="inline-block">
+          <!-- Header Row -->
+          <div class="flex">
+            <div class="w-12 h-8 bg-gray-100 border border-gray-300 flex items-center justify-center text-xs font-semibold">
+              Pos/Ram
+            </div>
+            <div class="w-12 h-8 bg-emerald-100 border border-emerald-300 flex items-center justify-center text-xs font-semibold">1</div>
+            <div class="w-12 h-8 bg-emerald-100 border border-emerald-300 flex items-center justify-center text-xs font-semibold">2</div>
+            <div class="w-12 h-8 bg-emerald-100 border border-emerald-300 flex items-center justify-center text-xs font-semibold">3</div>
+            <div class="w-12 h-8 bg-emerald-100 border border-emerald-300 flex items-center justify-center text-xs font-semibold">4</div>
+            <div class="w-12 h-8 bg-emerald-100 border border-emerald-300 flex items-center justify-center text-xs font-semibold">5</div>
+            <div class="w-12 h-8 bg-emerald-100 border border-emerald-300 flex items-center justify-center text-xs font-semibold">6</div>
+          </div>
+          
+          <!-- Grid Rows -->
+          <div id="mapping-grid">
+            <!-- Grid will be generated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analysis Results -->
+    <div id="analysis-section" class="hidden bg-white rounded-xl shadow-lg p-6 border border-green-100">
+      <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <span class="mr-2">📈</span>
+        Análise Quantitativa
+      </h2>
+      
+      <div id="analysis-results">
+        <!-- Results will be populated by JavaScript -->
+      </div>
+    </div>
+  </main>
+
+  <!-- Structure Selection Modal -->
+  <div id="structure-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 modal flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-6 m-4 max-w-sm w-full">
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">
+        Selecionar Estrutura
+      </h3>
+      <div id="modal-position" class="text-sm text-gray-600 mb-4">
+        Posição: --
+      </div>
+      
+      <div class="space-y-3">
+        <button onclick="selectStructure('B')" class="w-full p-3 rounded-lg border-2 border-green-200 hover:bg-green-50 flex items-center space-x-3">
+          <div class="w-8 h-8 bg-green-500 rounded flex items-center justify-center text-white font-bold">B</div>
+          <span class="font-medium text-gray-700">Botão Floral</span>
+        </button>
+        
+        <button onclick="selectStructure('F')" class="w-full p-3 rounded-lg border-2 border-yellow-200 hover:bg-yellow-50 flex items-center space-x-3">
+          <div class="w-8 h-8 bg-yellow-500 rounded flex items-center justify-center text-white font-bold">F</div>
+          <span class="font-medium text-gray-700">Flor</span>
+        </button>
+        
+        <button onclick="selectStructure('M')" class="w-full p-3 rounded-lg border-2 border-orange-200 hover:bg-orange-50 flex items-center space-x-3">
+          <div class="w-8 h-8 bg-orange-500 rounded flex items-center justify-center text-white font-bold">M</div>
+          <span class="font-medium text-gray-700">Maçã</span>
+        </button>
+        
+        <button onclick="selectStructure('C')" class="w-full p-3 rounded-lg border-2 border-blue-200 hover:bg-blue-50 flex items-center space-x-3">
+          <div class="w-8 h-8 bg-blue-500 rounded flex items-center justify-center text-white font-bold">C</div>
+          <span class="font-medium text-gray-700">Capulho</span>
+        </button>
+        
+        <button onclick="selectStructure('A')" class="w-full p-3 rounded-lg border-2 border-red-200 hover:bg-red-50 flex items-center space-x-3">
+          <div class="w-8 h-8 bg-red-500 rounded flex items-center justify-center text-white font-bold">A</div>
+          <span class="font-medium text-gray-700">Aborto</span>
+        </button>
+        
+        <button onclick="selectStructure('')" class="w-full p-3 rounded-lg border-2 border-gray-200 hover:bg-gray-50 flex items-center space-x-3">
+          <div class="w-8 h-8 bg-gray-500 rounded flex items-center justify-center text-white">🗑️</div>
+          <span class="font-medium text-gray-700">Limpar Posição</span>
+        </button>
+        
+        <button onclick="closeModal()" class="w-full p-3 rounded-lg border-2 border-gray-300 hover:bg-gray-50">
+          <span class="font-medium text-gray-500">Cancelar</span>
         </button>
       </div>
     </div>
   </div>
 
-  <script type="text/babel" src="cotton_mapping_pwa.jsx"></script>
-  
-  <script type="text/babel">
-    const { useState, useEffect, useCallback } = React;
-    const { 
-      Grid, Settings, TrendingUp, Info, Smartphone, Wifi, WifiOff,
-      Calculator, Download, Upload, Trash2, FileText, Layers, Book
-    } = lucideReact;
-
-    // Use the imported CottonMappingSystem component
-    const App = () => {
-    // Load the main app directly after component loads
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => {
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('app').classList.remove('hidden');
-      }, 1500);
-    });
-
-    // Use the CottonMappingSystem component directly
-    ReactDOM.render(React.createElement(CottonMappingSystem), document.getElementById('app'));
-  </script>
-
+  <!-- JavaScript -->
   <script>
-    // PWA Installation Logic
+    // Global variables
+    let mappingData = Array(20).fill(null).map(() => Array(6).fill(''));
+    let selectedCell = { row: -1, col: -1 };
+    let analysisResults = null;
+
+    // Initialize the grid
+    function initializeGrid() {
+      const gridContainer = document.getElementById('mapping-grid');
+      gridContainer.innerHTML = '';
+      
+      for (let row = 0; row < 20; row++) {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'flex';
+        
+        // Row header
+        const rowHeader = document.createElement('div');
+        rowHeader.className = 'w-12 h-12 bg-green-100 border border-green-300 flex items-center justify-center text-sm font-semibold';
+        rowHeader.textContent = row + 1;
+        rowDiv.appendChild(rowHeader);
+        
+        // Grid cells
+        for (let col = 0; col < 6; col++) {
+          const cell = document.createElement('div');
+          cell.className = 'w-12 h-12 border-2 cursor-pointer transition-all duration-200 flex items-center justify-center text-sm font-bold';
+          cell.id = `cell-${row}-${col}`;
+          cell.onclick = () => openModal(row, col);
+          updateCellAppearance(cell, '');
+          rowDiv.appendChild(cell);
+        }
+        
+        gridContainer.appendChild(rowDiv);
+      }
+    }
+
+    // Update cell appearance based on structure type
+    function updateCellAppearance(cell, structureType) {
+      // Reset classes
+      cell.className = 'w-12 h-12 border-2 cursor-pointer transition-all duration-200 flex items-center justify-center text-sm font-bold';
+      
+      if (structureType) {
+        cell.classList.add(`structure-${structureType.toLowerCase()}`);
+        cell.textContent = structureType;
+        cell.title = `Estrutura: ${getStructureName(structureType)}`;
+      } else {
+        cell.classList.add('bg-white', 'border-gray-300', 'hover:bg-blue-50', 'hover:border-blue-400');
+        cell.textContent = '';
+        cell.title = 'Clique para mapear';
+      }
+    }
+
+    // Get structure name
+    function getStructureName(type) {
+      const names = {
+        'B': 'Botão Floral',
+        'F': 'Flor',
+        'M': 'Maçã',
+        'C': 'Capulho',
+        'A': 'Aborto'
+      };
+      return names[type] || '';
+    }
+
+    // Open modal for structure selection
+    function openModal(row, col) {
+      selectedCell = { row, col };
+      document.getElementById('modal-position').textContent = `Posição: ${row + 1}-${col + 1}`;
+      document.getElementById('structure-modal').classList.remove('hidden');
+    }
+
+    // Close modal
+    function closeModal() {
+      document.getElementById('structure-modal').classList.add('hidden');
+    }
+
+    // Select structure
+    function selectStructure(type) {
+      const { row, col } = selectedCell;
+      mappingData[row][col] = type;
+      
+      const cell = document.getElementById(`cell-${row}-${col}`);
+      updateCellAppearance(cell, type);
+      
+      closeModal();
+      saveToLocalStorage();
+      calculateAnalysis(); // Auto-calculate
+    }
+
+    // Calculate analysis
+    function calculateAnalysis() {
+      const counts = { B: 0, F: 0, M: 0, C: 0, A: 0 };
+      let totalPositions = 0;
+
+      // Count structures
+      mappingData.forEach(row => {
+        row.forEach(cell => {
+          if (cell) {
+            counts[cell]++;
+            totalPositions++;
+          }
+        });
+      });
+
+      if (totalPositions === 0) {
+        document.getElementById('analysis-section').classList.add('hidden');
+        return;
+      }
+
+      // Calculate percentages
+      const percentages = {};
+      Object.keys(counts).forEach(key => {
+        percentages[key] = totalPositions > 0 ? ((counts[key] / totalPositions) * 100).toFixed(1) : '0.0';
+      });
+
+      // Calculate retention rate
+      const retentionRate = totalPositions > 0 ? 
+        (((counts.B + counts.F + counts.M + counts.C) / totalPositions) * 100).toFixed(1) : '0.0';
+
+      // Display results
+      displayAnalysisResults(counts, percentages, totalPositions, retentionRate);
+      
+      analysisResults = { counts, percentages, totalPositions, retentionRate };
+      saveToLocalStorage();
+    }
+
+    // Display analysis results
+    function displayAnalysisResults(counts, percentages, total, retention) {
+      const resultsDiv = document.getElementById('analysis-results');
+      
+      resultsDiv.innerHTML = `
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+          ${Object.entries(counts).map(([key, count]) => `
+            <div class="bg-gray-50 rounded-lg p-3 text-center border border-gray-200">
+              <div class="w-10 h-10 structure-${key.toLowerCase()} rounded-full mx-auto mb-2 flex items-center justify-center text-white font-bold">
+                ${key}
+              </div>
+              <div class="text-lg font-bold text-gray-800">${count}</div>
+              <div class="text-xs text-gray-600">${getStructureName(key)}</div>
+              <div class="text-xs text-green-600 font-semibold">${percentages[key]}%</div>
+            </div>
+          `).join('')}
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <div class="text-blue-700 font-semibold text-sm">Total de Posições</div>
+            <div class="text-2xl font-bold text-blue-800">${total}</div>
+          </div>
+          
+          <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+            <div class="text-green-700 font-semibold text-sm">Taxa de Retenção</div>
+            <div class="text-2xl font-bold text-green-800">${retention}%</div>
+          </div>
+          
+          <div class="bg-red-50 rounded-lg p-4 border border-red-200">
+            <div class="text-red-700 font-semibold text-sm">Taxa de Aborto</div>
+            <div class="text-2xl font-bold text-red-800">${percentages.A}%</div>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('analysis-section').classList.remove('hidden');
+    }
+
+    // Export to PDF
+    async function exportToPDF() {
+      if (!analysisResults) {
+        alert('Execute a análise primeiro para gerar o relatório PDF.');
+        return;
+      }
+      
+      try {
+        // Import jsPDF dynamically
+        const { jsPDF } = await import('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+        
+        const pdf = new jsPDF();
+        let yPos = 20;
+        
+        // Header
+        pdf.setFillColor(5, 150, 105);
+        pdf.rect(0, 0, 210, 25, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(16);
+        pdf.text('RELATÓRIO DE MAPEAMENTO DO ALGODÃO', 20, 16);
+        
+        // Content
+        yPos = 40;
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(14);
+        pdf.text('Dados da Análise', 20, yPos);
+        
+        yPos += 10;
+        pdf.setFontSize(10);
+        pdf.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, yPos);
+        yPos += 6;
+        pdf.text(`DAE: ${document.getElementById('dae-input').value} dias`, 20, yPos);
+        yPos += 6;
+        pdf.text(`Total de Posições Mapeadas: ${analysisResults.totalPositions}`, 20, yPos);
+        yPos += 6;
+        pdf.text(`Taxa de Retenção: ${analysisResults.retentionRate}%`, 20, yPos);
+        yPos += 6;
+        pdf.text(`Taxa de Aborto: ${analysisResults.percentages.A}%`, 20, yPos);
+        
+        yPos += 15;
+        pdf.setFontSize(12);
+        pdf.text('Contagem por Estrutura:', 20, yPos);
+        yPos += 8;
+        
+        Object.entries(analysisResults.counts).forEach(([key, count]) => {
+          pdf.setFontSize(10);
+          pdf.text(`${getStructureName(key)}: ${count} (${analysisResults.percentages[key]}%)`, 25, yPos);
+          yPos += 6;
+        });
+        
+        // Save
+        pdf.save(`relatorio-algodao-${new Date().toISOString().split('T')[0]}.pdf`);
+        
+      } catch (error) {
+        console.error('Erro ao gerar PDF:', error);
+        alert('Erro ao gerar PDF. Verifique sua conexão com a internet.');
+      }
+    }
+
+    // Export to JSON
+    function exportToJSON() {
+      const data = {
+        mappingData,
+        analysisResults,
+        dae: document.getElementById('dae-input').value,
+        exportDate: new Date().toISOString()
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mapeamento-algodao-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Clear grid
+    function clearGrid() {
+      if (confirm('Limpar todos os dados do mapeamento?')) {
+        mappingData = Array(20).fill(null).map(() => Array(6).fill(''));
+        analysisResults = null;
+        initializeGrid();
+        document.getElementById('analysis-section').classList.add('hidden');
+        saveToLocalStorage();
+      }
+    }
+
+    // Save to localStorage
+    function saveToLocalStorage() {
+      const data = {
+        mappingData,
+        analysisResults,
+        dae: document.getElementById('dae-input').value
+      };
+      localStorage.setItem('cotton-mapping-data', JSON.stringify(data));
+    }
+
+    // Load from localStorage
+    function loadFromLocalStorage() {
+      const saved = localStorage.getItem('cotton-mapping-data');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          mappingData = data.mappingData || Array(20).fill(null).map(() => Array(6).fill(''));
+          analysisResults = data.analysisResults;
+          
+          if (data.dae) {
+            document.getElementById('dae-input').value = data.dae;
+          }
+          
+          // Update grid
+          initializeGrid();
+          mappingData.forEach((row, rowIndex) => {
+            row.forEach((cell, colIndex) => {
+              if (cell) {
+                const cellElement = document.getElementById(`cell-${rowIndex}-${colIndex}`);
+                updateCellAppearance(cellElement, cell);
+              }
+            });
+          });
+          
+          if (analysisResults) {
+            displayAnalysisResults(
+              analysisResults.counts,
+              analysisResults.percentages,
+              analysisResults.totalPositions,
+              analysisResults.retentionRate
+            );
+          }
+          
+        } catch (error) {
+          console.error('Erro ao carregar dados salvos:', error);
+        }
+      }
+    }
+
+    // PWA Installation
     let deferredPrompt;
 
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -193,10 +604,6 @@
           document.getElementById('install-banner').classList.add('hidden');
         }
         deferredPrompt = null;
-      } else if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-        // Show iOS installation instructions
-        document.getElementById('ios-install-modal').classList.remove('hidden');
-        document.getElementById('ios-install-modal').classList.add('flex');
       }
     });
 
@@ -204,50 +611,40 @@
       document.getElementById('install-banner').classList.add('hidden');
     });
 
-    document.getElementById('close-ios-modal').addEventListener('click', () => {
-      document.getElementById('ios-install-modal').classList.add('hidden');
-      document.getElementById('ios-install-modal').classList.remove('flex');
-    });
-
-    // Service Worker Registration
+    // Service Worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then((registration) => {
-            console.log('SW registered: ', registration);
-          })
-          .catch((registrationError) => {
-            console.log('SW registration failed: ', registrationError);
-          });
+        navigator.serviceWorker.register('./sw.js')
+          .then(registration => console.log('SW registered'))
+          .catch(error => console.log('SW registration failed'));
       });
     }
 
-    // iOS specific features
-    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-      // Prevent bounce scrolling
-      document.addEventListener('touchmove', (e) => {
-        if (e.target.closest('input, textarea, select')) return;
-        e.preventDefault();
-      }, { passive: false });
-
-      // Handle safe areas
-      document.documentElement.style.setProperty('--safe-area-inset-top', 'env(safe-area-inset-top)');
-      document.documentElement.style.setProperty('--safe-area-inset-bottom', 'env(safe-area-inset-bottom)');
+    // Network status
+    function updateOnlineStatus() {
+      const statusIcon = document.getElementById('status-icon');
+      const statusText = document.getElementById('status-text');
+      const statusContainer = document.getElementById('online-status');
+      
+      if (navigator.onLine) {
+        statusIcon.textContent = '📶';
+        statusText.textContent = 'Online';
+        statusContainer.className = statusContainer.className.replace('bg-red-500/20', 'bg-green-500/20');
+      } else {
+        statusIcon.textContent = '📵';
+        statusText.textContent = 'Offline';
+        statusContainer.className = statusContainer.className.replace('bg-green-500/20', 'bg-red-500/20');
+      }
     }
 
-    // App installed detection
-    window.addEventListener('appinstalled', () => {
-      console.log('PWA foi instalado!');
-      document.getElementById('install-banner').classList.add('hidden');
-    });
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
 
-    // Network status
-    window.addEventListener('online', () => {
-      console.log('Online');
-    });
-
-    window.addEventListener('offline', () => {
-      console.log('Offline - PWA mode');
+    // Initialize app
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeGrid();
+      loadFromLocalStorage();
+      updateOnlineStatus();
     });
   </script>
 </body>
